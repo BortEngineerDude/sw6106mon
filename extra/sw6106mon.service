@@ -1,0 +1,11 @@
+[Unit]
+Description=SW6106 monitor service
+
+[Service]
+StandardError=journal
+StandardOutput=journal
+StandardInput=null
+ExecStart=sw6106mon
+
+[Install]
+WantedBy=multi-user.target
