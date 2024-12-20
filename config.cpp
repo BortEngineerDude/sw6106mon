@@ -24,7 +24,7 @@ void config::read_cli_args(int argc, const char **argv) {
       std::cout
           << argv[0] << " options:\n"
           << "\t-h | --help :\t\tprint this help\n"
-             "\t-s | --dsingle-run :\tquery once and exit\n"
+             "\t-s | --single-run :\tquery once and exit\n"
              "\t-i | --i2c_dev : \toverride i2c device (will ignore similar "
              "option in config file)\n"
              "\t-c | --config :\t\tset config path. Default value: "
