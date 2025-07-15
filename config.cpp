@@ -133,9 +133,9 @@ void config::read_config_file() {
 
     if (option == low_charge_percent) {
       tokenize >> m_low_charge_percent;
-      if (m_low_charge_percent < 0 || m_low_charge_percent > 100)
+      if (m_low_charge_percent < 1 || m_low_charge_percent > 100)
         throw std::invalid_argument(
-            "low_charge_percent should have a value between 0 and 100");
+            "low_charge_percent should have a value between 1 and 100");
     }
   }
 
@@ -146,7 +146,7 @@ void config::read_config_file() {
   m_gpio_enabled = !options_to_find.contains(gpio_interrupt_chip) &&
                    !options_to_find.contains(gpio_interrupt_line);
 
-  if (m_single_run && !m_gpio_enabled &&
+  if (!m_single_run && !m_gpio_enabled &&
       options_to_find.contains(poll_interval))
     throw std::logic_error("Both poll_interval and GPIO interrupts are "
                            "disabled, unable to continue");

@@ -2,12 +2,35 @@
 #include "sw6106.h"
 
 #include <chrono>
+#include <csignal>
 #include <ctime>
 #include <gpiod.hpp>
 #include <iostream>
 #include <thread>
 
+bool keep_running = false;
+
+void sigint_handler(int signal, siginfo_t *, void *) {
+  std::cout << "Caught signal " << signal;
+
+  if (signal == SIGINT || signal == SIGQUIT || signal == SIGTERM) {
+    std::cout << "; stopping...";
+    keep_running = false;
+  }
+
+  std::cout << std::endl;
+}
+
+void register_signal_handlers() {
+  struct sigaction sa;
+  sa.sa_sigaction = sigint_handler;
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGQUIT, &sa, NULL);
+  sigaction(SIGTERM, &sa, NULL);
+}
+
 int main(int argc, const char **argv) {
+  register_signal_handlers();
   config cfg(argc, argv);
 
   i2c::controller::ptr i2c_controller;
@@ -15,7 +38,7 @@ int main(int argc, const char **argv) {
   i2c_controller = std::make_shared<i2c::controller>(cfg.get_i2c_dev_path());
   i2c_controller->open();
 
-  const bool single_run = cfg.get_single_run();
+  keep_running = !cfg.get_single_run();
   const bool gpio_enabled = cfg.get_gpio_enabled();
   const std::string gpio_chip = cfg.get_gpio_chip();
   const std::chrono::seconds poll_interval = cfg.get_poll_interval();
@@ -23,7 +46,7 @@ int main(int argc, const char **argv) {
   gpiod::chip gpio(cfg.get_gpio_chip());
   gpiod::line interrupt_line;
 
-  if (!single_run && gpio_enabled) {
+  if (keep_running && gpio_enabled) {
     interrupt_line = gpio.get_line(cfg.get_gpio_line());
     gpiod::line_request config;
 
@@ -54,7 +77,7 @@ int main(int argc, const char **argv) {
   std::cout << "sw6106 chip version " << psu.get_chip_version() << std::endl;
 
   do {
-    if (single_run || !gpio_enabled || events > 0 ||
+    if (!keep_running || !gpio_enabled || events > 0 ||
         interrupt_line.get_value() == 0) {
       events = 0;
 
@@ -94,29 +117,29 @@ int main(int argc, const char **argv) {
         std::cout << "\nCharge current: " << psu.get_charge_current_ma()
                   << " mA";
 
-      if (single_run) {
+      if (!keep_running) {
         std::cout << std::endl;
         return 0;
       }
 
       if (interrupts != sw6106::interrupts::NONE)
-        std::cout << "\nEvents:\n" << interrupts;
+        std::cout << "\nEvents:\n" << interrupts << std::endl;
 
       if (!charging && discharging && cfg.get_power_off_on_low_charge()) {
-        if (charge_percent <= cfg.get_low_charge_percent()) {
+        if (charge_percent < cfg.get_low_charge_percent()) {
           std::cout << "\nCharge percent is bellow "
                     << cfg.get_low_charge_percent();
           poweroff = true;
         }
 
-        if (battery_voltage <= cfg.get_low_charge_voltage()) {
+        if (battery_voltage < cfg.get_low_charge_voltage()) {
           std::cout << "\nBattery voltage is bellow "
                     << cfg.get_low_charge_voltage() << " mV";
           poweroff = true;
         }
 
         if (poweroff) {
-          std::cout << ", initiating power off..." << std::endl;
+          std::cout << ", powering off..." << std::endl;
           int res = system("poweroff");
           if (res == 0) {
             std::cout << "System accepted poweroff call, quitting..."
@@ -130,8 +153,11 @@ int main(int argc, const char **argv) {
     }
 
     if (gpio_enabled) {
-      if (interrupt_line.event_wait(std::chrono::seconds(5)))
-        events = interrupt_line.event_read_multiple().size();
+      try {
+        if (interrupt_line.event_wait(std::chrono::seconds(5)))
+          events = interrupt_line.event_read_multiple().size();
+      } catch (std::system_error &) {
+      }
     } else
       std::this_thread::sleep_for(poll_interval);
 
@@ -143,7 +169,7 @@ int main(int argc, const char **argv) {
 
     // This will make journald happy
     std::cout << std::flush;
-  } while (!single_run);
+  } while (keep_running);
 
   return 0;
 }

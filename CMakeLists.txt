@@ -30,12 +30,27 @@ target_link_libraries(${PROJECT_NAME}
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_BIN})
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/extra/sw6106mon.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR})
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/extra/sw6106mon.service DESTINATION ${CMAKE_INSTALL_LIBDIR}/systemd/system/)
+
+if(SW6106_INSTALL_SYSTEMD_SERVICE)
+  set(SW6106_SYSTEMD_SERVICE_PATH ${CMAKE_INSTALL_LIBDIR}/systemd/system/)
+
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/extra/sw6106mon.service DESTINATION ${SW6106_SYSTEMD_SERVICE_PATH})
+  message("Installing systemd service into " \/${SW6106_SYSTEMD_SERVICE_PATH}sw6106mon.service)
+endif()
+
+if(SW6106_INSTALL_INITD_SCRIPT)
+  set(SW6106_INITD_SCRIPT_PATH "/etc/init.d")
+
+  install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/extra/S46sw6106mon DESTINATION ${SW6106_INITD_SCRIPT_PATH})
+  message("Installing init.d script into " ${SW6106_INITD_SCRIPT_PATH})
+endif()
 
 include(package)
 
 if(NOT SW6106_DEFAULT_CONFIG_PATH)
   set(SW6106_DEFAULT_CONFIG_PATH "\"/${CMAKE_INSTALL_SYSCONFDIR}/sw6106mon.conf\"")
 endif()
+
+message("Default config path is set to " ${SW6106_DEFAULT_CONFIG_PATH})
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE SW6106_DEFAULT_CONFIG_PATH=${SW6106_DEFAULT_CONFIG_PATH})

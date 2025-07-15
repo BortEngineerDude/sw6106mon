@@ -58,7 +58,7 @@ cd sw6106mon
 # Build the package
 mkdir build
 cd build
-cmake ..
+cmake .. -DSW6106_INSTALL_SYSTEMD_SERVICE=ON
 cpack -G DEB
 ```
 

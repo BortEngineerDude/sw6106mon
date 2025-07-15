@@ -5,13 +5,21 @@
 
 start() {
   printf "Starting sw6106mon: "
-  /usr/local/bin/sw6106mon &
-	echo "OK" 
+  /usr/bin/sw6106mon &
+  if [ $? -ne 0 ]; then
+    echo "FAIL"
+    exit 1
+  fi
+
+  echo "OK"
 }
+
 stop() {
   printf "Stopping sw6106mon: "
-	killall sw6106mon
+  killall sw6106mon
+  echo "OK"
 }
+
 restart() {
   stop
   start

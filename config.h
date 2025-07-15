@@ -11,14 +11,14 @@ class config {
   bool m_single_run = false;
 
   std::string m_gpio_chip;
-  uint m_gpio_line;
+  uint m_gpio_line = 0;
   bool m_gpio_enabled = true;
 
   std::chrono::seconds m_poll_interval;
 
-  int m_low_charge_voltage;
-  int m_low_charge_percent;
-  bool m_power_off_on_low_charge;
+  int m_low_charge_voltage = 0;
+  int m_low_charge_percent = 0;
+  bool m_power_off_on_low_charge = false;
 
   void read_cli_args(int argc, const char **argv);
   void read_config_file();
